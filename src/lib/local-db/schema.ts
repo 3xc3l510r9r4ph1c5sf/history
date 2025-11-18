@@ -43,6 +43,9 @@ export const researchTasks = sqliteTable("research_tasks", {
     .default(sql`(unixepoch())`),
   completedAt: integer("completed_at", { mode: "timestamp" }),
   anonymousId: text("anonymous_id"),
+  isPublic: integer("is_public", { mode: "boolean" }).default(false),
+  shareToken: text("share_token").unique(),
+  sharedAt: integer("shared_at", { mode: "timestamp" }),
 });
 
 // Chat sessions table - mirrors Supabase chat_sessions table

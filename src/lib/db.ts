@@ -573,3 +573,89 @@ export async function updateResearchTaskByDeepResearchId(
     .eq("deepresearch_id", deepresearchId);
   return { error };
 }
+
+// Share a research task publicly
+export async function shareResearchTask(taskId: string, userId: string) {
+  if (isDevelopmentMode()) {
+    const db = getLocalDb();
+    const shareToken = Math.random().toString(36).substring(2, 14);
+    await db.update(schema.researchTasks)
+      .set({
+        isPublic: true,
+        shareToken: shareToken,
+        sharedAt: new Date(),
+      })
+      .where(eq(schema.researchTasks.id, taskId));
+    return { data: { share_token: shareToken }, error: null };
+  }
+
+  const supabase = await createSupabaseClient();
+
+  // First, generate a share token using the database function
+  const { data: tokenData } = await supabase.rpc('generate_share_token');
+  const shareToken = tokenData;
+
+  // Update the task to be public with the share token
+  const { data, error } = await supabase
+    .from("research_tasks")
+    .update({
+      is_public: true,
+      share_token: shareToken,
+      shared_at: new Date().toISOString(),
+    })
+    .eq("id", taskId)
+    .eq("user_id", userId) // Ensure user owns this task
+    .select('share_token')
+    .single();
+
+  return { data, error };
+}
+
+// Unshare a research task
+export async function unshareResearchTask(taskId: string, userId: string) {
+  if (isDevelopmentMode()) {
+    const db = getLocalDb();
+    await db.update(schema.researchTasks)
+      .set({
+        isPublic: false,
+        shareToken: null,
+        sharedAt: null,
+      })
+      .where(eq(schema.researchTasks.id, taskId));
+    return { error: null };
+  }
+
+  const supabase = await createSupabaseClient();
+  const { error } = await supabase
+    .from("research_tasks")
+    .update({
+      is_public: false,
+      share_token: null,
+      shared_at: null,
+    })
+    .eq("id", taskId)
+    .eq("user_id", userId);
+
+  return { error };
+}
+
+// Get a public research task by share token (no auth required)
+export async function getPublicResearchTask(shareToken: string) {
+  if (isDevelopmentMode()) {
+    const db = getLocalDb();
+    const [task] = await db.select()
+      .from(schema.researchTasks)
+      .where(eq(schema.researchTasks.shareToken, shareToken));
+    return { data: task || null, error: null };
+  }
+
+  const supabase = await createSupabaseClient();
+  const { data, error } = await supabase
+    .from("research_tasks")
+    .select('*')
+    .eq("share_token", shareToken)
+    .eq("is_public", true)
+    .single();
+
+  return { data, error };
+}

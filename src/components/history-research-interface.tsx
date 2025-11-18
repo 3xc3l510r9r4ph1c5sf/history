@@ -5,11 +5,12 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { X, Loader2, MapPin, ExternalLink, Search, FileText, Lightbulb, CornerDownRight, Globe2, CheckCircle2, Brain, Clock, Sparkles } from 'lucide-react';
+import { X, Loader2, MapPin, ExternalLink, Search, FileText, Lightbulb, CornerDownRight, Globe2, CheckCircle2, Brain, Clock, Sparkles, Share2, Check, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Favicon } from '@/components/ui/favicon';
 import { ReasoningDialog } from '@/components/reasoning-dialog';
 import { calculateAgentMetrics } from '@/lib/metrics-calculator';
+import { useAuthStore } from '@/lib/stores/use-auth-store';
 
 interface Source {
   title: string;
@@ -62,6 +63,7 @@ interface HistoryResearchInterfaceProps {
 }
 
 export function HistoryResearchInterface({ location, onClose, onTaskCreated, initialTaskId }: HistoryResearchInterfaceProps) {
+  const { user } = useAuthStore();
   const [status, setStatus] = useState<'idle' | 'queued' | 'running' | 'completed' | 'error'>('idle');
   const [content, setContent] = useState<string>('');
   const [sources, setSources] = useState<Source[]>([]);
@@ -73,6 +75,53 @@ export function HistoryResearchInterface({ location, onClose, onTaskCreated, ini
   const [shouldContinuePolling, setShouldContinuePolling] = useState(false);
   const [displayLocation, setDisplayLocation] = useState(location);
   const [showReasoningDialog, setShowReasoningDialog] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = async () => {
+    if (!user || !taskId) return;
+
+    setSharing(true);
+    try {
+      // Get the actual task ID from the database
+      const tasksResponse = await fetch('/api/research/tasks');
+      const { tasks } = await tasksResponse.json();
+      const task = tasks.find((t: any) => t.deepresearchId === taskId);
+
+      if (!task) {
+        throw new Error('Task not found');
+      }
+
+      const response = await fetch('/api/research/share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId: task.id }),
+      });
+
+      if (!response.ok) throw new Error('Failed to share');
+
+      const data = await response.json();
+      setShareUrl(data.shareUrl);
+
+      // Copy to clipboard
+      await navigator.clipboard.writeText(data.shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      console.error('Failed to share:', error);
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  const handleCopyUrl = async () => {
+    if (shareUrl) {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   // Polling function for long-running tasks
   const pollTaskStatus = async (taskId: string) => {
@@ -407,9 +456,29 @@ export function HistoryResearchInterface({ location, onClose, onTaskCreated, ini
             )}
           </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={onClose}>
-          <X className="h-5 w-5" />
-        </Button>
+        <div className="flex items-center gap-2">
+          {user && status === 'completed' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleShare}
+              disabled={sharing}
+              className="gap-2"
+            >
+              {sharing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : copied ? (
+                <Check className="h-4 w-4 text-green-500" />
+              ) : (
+                <Share2 className="h-4 w-4" />
+              )}
+              {copied ? 'Copied!' : 'Share'}
+            </Button>
+          )}
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="h-5 w-5" />
+          </Button>
+        </div>
       </div>
 
       {/* Content */}
