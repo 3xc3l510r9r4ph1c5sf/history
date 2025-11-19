@@ -229,6 +229,33 @@ Please be thorough and well-researched, citing historical sources where possible
       }
     }
 
+    // Helper function to stream messages
+    const streamMessages = (controller: any, encoder: TextEncoder, messages: any[], lastLength: number) => {
+      if (!messages || !Array.isArray(messages)) return lastLength;
+
+      const newMessages = messages.slice(lastLength);
+      if (newMessages.length > 0) {
+        for (const message of newMessages) {
+          // Stream assistant AND tool messages (tool messages contain tool-results with sources)
+          if ((message.role === 'assistant' || message.role === 'tool') && message.content) {
+            for (const contentItem of message.content) {
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({
+                    type: 'message_update',
+                    content_type: contentItem.type,
+                    data: contentItem,
+                    message_role: message.role,
+                  })}\n\n`
+                )
+              );
+            }
+          }
+        }
+      }
+      return messages.length;
+    };
+
     // Poll for task completion and stream results
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
@@ -257,10 +284,9 @@ Please be thorough and well-researched, citing historical sources where possible
 
           let completed = false;
           let pollCount = 0;
-          // Poll for up to 14 minutes within this connection (leaving 1 min buffer for Vercel limit)
           const maxPolls = 840; // 14 minutes at 1 second intervals
           let lastMessagesLength = 0;
-          let hasSetRunning = false; // Track if we've updated status to running
+          let hasSetRunning = false;
 
           while (!completed && pollCount < maxPolls) {
             await new Promise(resolve => setTimeout(resolve, 1000));
@@ -282,7 +308,6 @@ Please be thorough and well-researched, citing historical sources where possible
             const statusData = await statusResponse.json();
             console.log("[Chat API] Task status:", statusData.status);
 
-            // Send progress updates
             if (statusData.status === 'running') {
               // Update database status to running on first detection
               if (!isDevelopment && !hasSetRunning) {
@@ -309,53 +334,13 @@ Please be thorough and well-researched, citing historical sources where possible
                 )
               );
 
-              // Stream new messages from the messages array
-              if (statusData.messages && Array.isArray(statusData.messages)) {
-                const newMessages = statusData.messages.slice(lastMessagesLength);
-                if (newMessages.length > 0) {
-                  for (const message of newMessages) {
-                    if (message.role === 'assistant' && message.content) {
-                      // Stream each content item from assistant messages
-                      for (const contentItem of message.content) {
-                        controller.enqueue(
-                          encoder.encode(
-                            `data: ${JSON.stringify({
-                              type: 'message_update',
-                              content_type: contentItem.type,
-                              data: contentItem,
-                            })}\n\n`
-                          )
-                        );
-                      }
-                    }
-                  }
-                  lastMessagesLength = statusData.messages.length;
-                }
-              }
+              // Stream new messages
+              lastMessagesLength = streamMessages(controller, encoder, statusData.messages, lastMessagesLength);
             } else if (statusData.status === 'completed') {
               completed = true;
 
               // Stream any remaining messages
-              if (statusData.messages && Array.isArray(statusData.messages)) {
-                const newMessages = statusData.messages.slice(lastMessagesLength);
-                if (newMessages.length > 0) {
-                  for (const message of newMessages) {
-                    if (message.role === 'assistant' && message.content) {
-                      for (const contentItem of message.content) {
-                        controller.enqueue(
-                          encoder.encode(
-                            `data: ${JSON.stringify({
-                              type: 'message_update',
-                              content_type: contentItem.type,
-                              data: contentItem,
-                            })}\n\n`
-                          )
-                        );
-                      }
-                    }
-                  }
-                }
-              }
+              lastMessagesLength = streamMessages(controller, encoder, statusData.messages, lastMessagesLength);
 
               // Stream the final output
               const output = statusData.output || '';

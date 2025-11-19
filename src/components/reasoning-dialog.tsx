@@ -25,7 +25,7 @@ export function ReasoningDialog({
 }: ReasoningDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0">
+      <DialogContent className="!max-w-[95vw] h-[85vh] flex flex-col p-0">
         <DialogHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-950/30">
@@ -44,7 +44,7 @@ export function ReasoningDialog({
           </div>
         </DialogHeader>
         <div className="flex-1 overflow-y-auto px-6 py-4">
-          <div className="space-y-3">{children}</div>
+          <div className="space-y-4">{children}</div>
         </div>
       </DialogContent>
     </Dialog>
