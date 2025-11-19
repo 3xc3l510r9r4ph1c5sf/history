@@ -259,7 +259,10 @@ export function HistoryResearchInterface({ location, onClose, onTaskCreated, ini
       const response = await fetch('/api/research/share', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ taskId: task.id }),
+        body: JSON.stringify({
+          taskId: task.id,
+          images: heroImages.length > 0 ? heroImages : undefined,
+        }),
       });
 
       if (!response.ok) throw new Error('Failed to share');
@@ -312,6 +315,15 @@ export function HistoryResearchInterface({ location, onClose, onTaskCreated, ini
 
         if (reasoning) {
           console.log('[HeroImage] Selection reasoning:', reasoning);
+        }
+
+        // Store images in localStorage with taskId for persistence
+        if (taskId) {
+          try {
+            localStorage.setItem(`research_images_${taskId}`, JSON.stringify(images));
+          } catch (err) {
+            console.error('[HeroImage] Failed to cache images:', err);
+          }
         }
       } else {
         console.log('[HeroImage] No images available');
@@ -411,6 +423,18 @@ export function HistoryResearchInterface({ location, onClose, onTaskCreated, ini
       console.log('Loading existing research:', initialTaskId);
       setTaskId(initialTaskId);
       setShouldContinuePolling(true);
+
+      // Try to load cached images
+      try {
+        const cachedImages = localStorage.getItem(`research_images_${initialTaskId}`);
+        if (cachedImages) {
+          const images = JSON.parse(cachedImages);
+          setHeroImages(images);
+          console.log('[HeroImage] Loaded', images.length, 'cached images');
+        }
+      } catch (err) {
+        console.error('[HeroImage] Failed to load cached images:', err);
+      }
     }
   }, [initialTaskId, taskId]);
 

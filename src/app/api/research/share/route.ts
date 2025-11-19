@@ -11,13 +11,24 @@ export async function POST(req: Request) {
     });
   }
 
-  const { taskId } = await req.json();
+  const { taskId, images } = await req.json();
 
   if (!taskId) {
     return new Response(JSON.stringify({ error: "Missing taskId" }), {
       status: 400,
       headers: { "Content-Type": "application/json" }
     });
+  }
+
+  // Store images if provided (for sharing)
+  if (images && images.length > 0) {
+    try {
+      await db.updateResearchTask(taskId, user.id, {
+        location_images: JSON.stringify(images),
+      });
+    } catch (err) {
+      console.error('[Share] Failed to save images:', err);
+    }
   }
 
   const { data, error } = await db.shareResearchTask(taskId, user.id);

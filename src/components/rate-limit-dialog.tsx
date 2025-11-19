@@ -276,9 +276,9 @@ export function RateLimitDialog({ open, onOpenChange, resetTime, onShowAuth }: R
                     onClick={() => {
                       track('GitHub CTA Click', {
                         source: 'rate_limit_dialog',
-                        url: 'https://github.com/yourusername/history/'
+                        url: 'https://github.com/yorkeccak/history/'
                       });
-                      window.open('https://github.com/yourusername/history/', '_blank');
+                      window.open('https://github.com/yorkeccak/history/', '_blank');
                     }}
                     variant="ghost"
                     className="flex-1 text-sm"

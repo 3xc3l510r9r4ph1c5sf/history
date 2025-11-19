@@ -46,6 +46,7 @@ export const researchTasks = sqliteTable("research_tasks", {
   isPublic: integer("is_public", { mode: "boolean" }).default(false),
   shareToken: text("share_token").unique(),
   sharedAt: integer("shared_at", { mode: "timestamp" }),
+  locationImages: text("location_images"), // JSON string of image URLs
 });
 
 // Chat sessions table - mirrors Supabase chat_sessions table
