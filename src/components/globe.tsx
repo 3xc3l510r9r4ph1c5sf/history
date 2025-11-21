@@ -17,6 +17,10 @@ export type GlobeTheme =
 interface GlobeProps {
   onLocationClick: (location: { name: string; lat: number; lng: number }) => void;
   theme?: GlobeTheme;
+  initialCenter?: [number, number]; // [lng, lat]
+  initialZoom?: number;
+  marker?: { lat: number; lng: number };
+  disableInteraction?: boolean;
 }
 
 export interface GlobeRef {
@@ -66,9 +70,10 @@ if (typeof window !== 'undefined') {
   window.addEventListener('unhandledrejection', handleRejection);
 }
 
-export const Globe = forwardRef<GlobeRef, GlobeProps>(function Globe({ onLocationClick, theme = 'satellite-streets-v12' }, ref) {
+export const Globe = forwardRef<GlobeRef, GlobeProps>(function Globe({ onLocationClick, theme = 'satellite-streets-v12', initialCenter, initialZoom, marker, disableInteraction = false }, ref) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
+  const markerRef = useRef<mapboxgl.Marker | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -90,8 +95,8 @@ export const Globe = forwardRef<GlobeRef, GlobeProps>(function Globe({ onLocatio
         container: mapContainerRef.current,
         // Use selected theme style
         style: `mapbox://styles/mapbox/${theme}`,
-        center: [0, 30], // Center on world view
-        zoom: 1.2,
+        center: initialCenter || [0, 30], // Use provided center or default world view
+        zoom: initialZoom || 1.2,
         projection: 'globe' as any, // Enable globe projection
         pitch: 0,
         bearing: 0,
@@ -107,16 +112,32 @@ export const Globe = forwardRef<GlobeRef, GlobeProps>(function Globe({ onLocatio
         map.setFog({});
         setIsLoading(false);
 
-        // Auto-rotation logic with proper interaction detection
+        // Add marker if provided
+        if (marker) {
+          // Create a custom marker element
+          const el = document.createElement('div');
+          el.className = 'location-marker';
+          el.style.width = '32px';
+          el.style.height = '32px';
+          el.style.backgroundImage = 'url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxMiIgZmlsbD0iI0VGNDQ0NCIgZmlsbC1vcGFjaXR5PSIwLjgiIHN0cm9rZT0iI0ZGRkZGRiIgc3Ryb2tlLXdpZHRoPSIyIi8+PGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iNSIgZmlsbD0iI0ZGRkZGRiIvPjwvc3ZnPg==)';
+          el.style.backgroundSize = 'cover';
+          el.style.cursor = 'pointer';
+
+          markerRef.current = new mapboxgl.Marker(el)
+            .setLngLat([marker.lng, marker.lat])
+            .addTo(map);
+        }
+
+        // Auto-rotation logic with proper interaction detection (only if no marker)
         let userInteracting = false;
-        let spinEnabled = true;
+        let spinEnabled = !marker; // Disable spin if marker is present
         const secondsPerRevolution = 120; // Slower rotation
         const maxSpinZoom = 5; // Stop spinning when zoomed in
         const slowSpinZoom = 3;
 
         function spinGlobe() {
           const zoom = map.getZoom();
-          if (spinEnabled && !userInteracting && zoom < maxSpinZoom) {
+          if (spinEnabled && !userInteracting && zoom < maxSpinZoom && !marker) {
             let distancePerSecond = 360 / secondsPerRevolution;
             if (zoom > slowSpinZoom) {
               // Slow down rotation when zoomed in
@@ -207,8 +228,9 @@ export const Globe = forwardRef<GlobeRef, GlobeProps>(function Globe({ onLocatio
         setInterval(spinGlobe, 1000 / 60); // 60 fps
       });
 
-      // Handle clicks on the map
-      map.on('click', async (e) => {
+      // Handle clicks on the map (only if no marker and interaction enabled)
+      if (!marker && !disableInteraction) {
+        map.on('click', async (e) => {
         const { lng, lat } = e.lngLat;
         const zoom = map.getZoom();
 
@@ -271,7 +293,8 @@ export const Globe = forwardRef<GlobeRef, GlobeProps>(function Globe({ onLocatio
             lng,
           });
         }
-      });
+        });
+      }
 
       // Change cursor on hover
       map.on('mouseenter', () => {
@@ -399,10 +422,12 @@ export const Globe = forwardRef<GlobeRef, GlobeProps>(function Globe({ onLocatio
         </div>
       )}
       <div ref={mapContainerRef} className="w-full h-full" />
-      <div className="absolute bottom-4 left-4 bg-background/90 backdrop-blur-sm px-4 py-2 rounded-lg shadow-lg">
-        <p className="text-sm font-medium">Click anywhere on the globe to research its history</p>
-        <p className="text-xs text-muted-foreground mt-1">Rotation pauses when you interact</p>
-      </div>
+      {!marker && (
+        <div className="absolute bottom-4 left-4 bg-background/90 backdrop-blur-sm px-4 py-2 rounded-lg shadow-lg">
+          <p className="text-sm font-medium">Click anywhere on the globe to research its history</p>
+          <p className="text-xs text-muted-foreground mt-1">Rotation pauses when you interact</p>
+        </div>
+      )}
     </div>
   );
 });

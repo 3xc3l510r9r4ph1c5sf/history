@@ -14,6 +14,7 @@ import { ReasoningDialog } from '@/components/reasoning-dialog';
 import { calculateAgentMetrics } from '@/lib/metrics-calculator';
 import { useAuthStore } from '@/lib/stores/use-auth-store';
 import { useRateLimit } from '@/lib/hooks/use-rate-limit';
+import { Globe } from '@/components/globe';
 
 interface Source {
   title: string;
@@ -252,6 +253,7 @@ export function HistoryResearchInterface({ location, onClose, onTaskCreated, ini
   const { user } = useAuthStore();
   const { increment, refresh } = useRateLimit();
   const [status, setStatus] = useState<'idle' | 'queued' | 'running' | 'completed' | 'error'>('idle');
+  const [showMiniGlobe, setShowMiniGlobe] = useState(false);
   const [content, setContent] = useState<string>('');
   const [sources, setSources] = useState<Source[]>([]);
   const [images, setImages] = useState<ResearchImage[]>([]);
@@ -855,18 +857,68 @@ export function HistoryResearchInterface({ location, onClose, onTaskCreated, ini
   if (!displayLocation) return null;
 
   return (
-    <div className="fixed inset-0 bg-background/70 backdrop-blur-md z-50 flex">
-      {/* Header */}
-      <div className="absolute top-0 left-0 right-0 h-14 sm:h-16 border-b border-border/30 bg-background/30 backdrop-blur-xl flex items-center justify-between px-3 sm:px-6 z-10">
+    <div className="fixed inset-0 bg-background/70 backdrop-blur-md z-50 flex flex-col lg:flex-row overflow-hidden">
+      {/* Mini Globe - Desktop Left Side Collapsible */}
+      <AnimatePresence>
+        {showMiniGlobe && (
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: 384 }}
+            exit={{ width: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="hidden lg:block h-full border-r border-border/30 bg-background/20 backdrop-blur-sm overflow-hidden"
+          >
+            <div className="h-full p-4 flex flex-col">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Location</div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowMiniGlobe(false)}
+                  className="h-6 w-6"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="flex-1 rounded-lg overflow-hidden border border-border/50 shadow-xl">
+                <Globe
+                  onLocationClick={() => {}}
+                  theme="satellite-streets-v12"
+                  initialCenter={displayLocation.lat !== 0 && displayLocation.lng !== 0 ? [displayLocation.lng, displayLocation.lat] : undefined}
+                  initialZoom={displayLocation.lat !== 0 && displayLocation.lng !== 0 ? 4 : undefined}
+                  marker={displayLocation.lat !== 0 && displayLocation.lng !== 0 ? { lat: displayLocation.lat, lng: displayLocation.lng } : undefined}
+                  disableInteraction={false}
+                />
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="h-14 sm:h-16 border-b border-border/30 bg-background/30 backdrop-blur-xl flex items-center justify-between px-3 sm:px-6 z-10 flex-shrink-0">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-          <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
-          <div className="min-w-0 flex-1">
-            <h2 className="text-sm sm:text-lg font-semibold truncate">{displayLocation.name}</h2>
-            {displayLocation.lat !== 0 && displayLocation.lng !== 0 && (
-              <p className="text-[10px] sm:text-xs text-muted-foreground">
-                {displayLocation.lat.toFixed(4)}, {displayLocation.lng.toFixed(4)}
-              </p>
-            )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowMiniGlobe(!showMiniGlobe)}
+            className="hidden lg:flex h-9 w-9 flex-shrink-0"
+            title="Toggle location map"
+          >
+            <MapPin className="h-4 w-4" />
+          </Button>
+          <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0 lg:hidden" />
+          <div className="min-w-0 flex-1 flex items-center">
+            <div className="min-w-0">
+              <h2 className="text-sm sm:text-lg font-semibold truncate">{displayLocation.name}</h2>
+              {displayLocation.lat !== 0 && displayLocation.lng !== 0 && (
+                <p className="text-[10px] sm:text-xs text-muted-foreground">
+                  {displayLocation.lat.toFixed(4)}, {displayLocation.lng.toFixed(4)}
+                </p>
+              )}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
@@ -892,12 +944,12 @@ export function HistoryResearchInterface({ location, onClose, onTaskCreated, ini
             <X className="h-5 w-5" />
           </Button>
         </div>
-      </div>
+        </div>
 
-      {/* Content */}
-      <div className="flex-1 mt-14 sm:mt-16 overflow-hidden">
-        <ScrollArea className="h-full will-change-scroll">
-          <div className="max-w-4xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6 overflow-x-hidden transform-gpu">
+        {/* Content */}
+        <div className="flex-1 overflow-hidden">
+        <ScrollArea className="h-full will-change-scroll" style={{ WebkitOverflowScrolling: 'touch' } as any}>
+          <div className="max-w-4xl mx-auto p-3 sm:p-6 pb-safe space-y-4 sm:space-y-6 overflow-x-hidden transform-gpu">
             {/* Status */}
             {status === 'queued' && (
               <div className="flex items-center justify-center py-12">
@@ -1160,6 +1212,23 @@ export function HistoryResearchInterface({ location, onClose, onTaskCreated, ini
             })()}
           </div>
         </ScrollArea>
+        </div>
+
+        {/* Mini Globe - Mobile Bottom */}
+        <div className="lg:hidden h-48 border-t border-border/30 bg-background/20 backdrop-blur-sm flex-shrink-0">
+          <div className="h-full p-2">
+            <div className="h-full rounded-lg overflow-hidden border border-border/50 shadow-xl">
+              <Globe
+                onLocationClick={() => {}}
+                theme="satellite-streets-v12"
+                initialCenter={displayLocation.lat !== 0 && displayLocation.lng !== 0 ? [displayLocation.lng, displayLocation.lat] : undefined}
+                initialZoom={displayLocation.lat !== 0 && displayLocation.lng !== 0 ? 3 : undefined}
+                marker={displayLocation.lat !== 0 && displayLocation.lng !== 0 ? { lat: displayLocation.lat, lng: displayLocation.lng } : undefined}
+                disableInteraction={false}
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Reasoning Dialog */}
