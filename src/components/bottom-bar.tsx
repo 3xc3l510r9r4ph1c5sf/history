@@ -159,7 +159,7 @@ const BottomBar = ({ onShowAuth, onShowSettings, onShowSubscription, onShowHisto
         )}
       </AnimatePresence>
 
-      {/* Bottom Right - Social Links & Disclaimer - Always visible on desktop, hidden on mobile */}
+      {/* Bottom Right - Social Links - Always visible on desktop, hidden on mobile */}
       <motion.div
         className="fixed bottom-3 sm:bottom-6 right-3 sm:right-6 z-30 transition-opacity duration-300 hidden sm:flex flex-col items-end gap-3"
         initial={{ opacity: 0, x: 20 }}
@@ -168,11 +168,6 @@ const BottomBar = ({ onShowAuth, onShowSettings, onShowSubscription, onShowHisto
       >
         {/* Social Links */}
         <SocialLinks />
-
-        {/* Medical Disclaimer */}
-        <p className="text-[10px] sm:text-xs text-muted-foreground">
-          Not medical advice.
-        </p>
       </motion.div>
     </>
   );

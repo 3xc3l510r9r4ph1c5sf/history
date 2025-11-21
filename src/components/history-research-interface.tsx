@@ -392,28 +392,23 @@ export function HistoryResearchInterface({ location, onClose, onTaskCreated, ini
           }
         }
 
-        // Update messages array if provided - only if length changed to avoid unnecessary re-renders
+        // Update messages array if provided
         if (statusData.messages && Array.isArray(statusData.messages) && statusData.messages.length > 0) {
-          setMessages(prevMessages => {
-            if (prevMessages.length !== statusData.messages.length) {
-              setMessagesVersion(v => v + 1);
-              return [...statusData.messages];
-            }
-            return prevMessages;
-          });
+          setMessages([...statusData.messages]);
+          setMessagesVersion(v => v + 1);
         }
 
-        // Update content/sources/images if provided during running state - only if changed
+        // Update content/sources/images if provided during running state
         if (statusData.output) {
-          setContent(prev => prev === statusData.output ? prev : statusData.output);
+          setContent(statusData.output);
         }
 
         if (statusData.sources && Array.isArray(statusData.sources) && statusData.sources.length > 0) {
-          setSources(prev => prev.length === statusData.sources.length ? prev : statusData.sources);
+          setSources(statusData.sources);
         }
 
         if (statusData.images && Array.isArray(statusData.images) && statusData.images.length > 0) {
-          setImages(prev => prev.length === statusData.images.length ? prev : statusData.images);
+          setImages(statusData.images);
         }
 
         return { completed: false };
@@ -453,26 +448,19 @@ export function HistoryResearchInterface({ location, onClose, onTaskCreated, ini
         }
 
         if (statusData.messages && Array.isArray(statusData.messages) && statusData.messages.length > 0) {
-          setMessages(prevMessages => {
-            if (prevMessages.length !== statusData.messages.length) {
-              setMessagesVersion(v => v + 1);
-              return [...statusData.messages];
-            }
-            return prevMessages;
-          });
+          setMessages([...statusData.messages]);
+          setMessagesVersion(v => v + 1);
         }
 
         if (statusData.sources && Array.isArray(statusData.sources) && statusData.sources.length > 0) {
-          setSources(prev => prev.length === statusData.sources.length ? prev : statusData.sources);
+          setSources(statusData.sources);
         }
 
         if (statusData.images && Array.isArray(statusData.images) && statusData.images.length > 0) {
-          setImages(prev => prev.length === statusData.images.length ? prev : statusData.images);
+          setImages(statusData.images);
         }
 
         // Set status to completed LAST, after all content is ready
-        // Force re-render by updating messagesVersion even if messages didn't change
-        setMessagesVersion(v => v + 1);
         setStatus('completed');
         return { completed: true };
       } else if (statusData.status === 'failed') {
