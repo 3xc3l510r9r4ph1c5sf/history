@@ -48,7 +48,7 @@ async function filterValidImageUrls(urls: string[]): Promise<string[]> {
 
 export async function POST(req: NextRequest) {
   try {
-    const { locationName } = await req.json();
+    const { locationName, historicalPeriod, preset } = await req.json();
 
     // Check API keys
     const valyuApiKey = process.env.VALYU_API_KEY;
@@ -64,14 +64,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ images: [], source: 'none', reason: 'Valyu API key not configured' });
     }
 
-    // Simple search query: just location name + "image"
-    const searchQuery = `${locationName} image`;
+    // Simple search query: just location name
+    const searchQuery = locationName;
     console.log('[LocationImage] Search query:', searchQuery);
 
-    // Search Valyu API with more results
+    // Search Valyu API
     try {
       const valyu = new Valyu(valyuApiKey, 'https://api.valyu.ai/v1');
-      const response = await valyu.search(searchQuery, { maxNumResults: 50 });
+      const response = await valyu.search(searchQuery, { maxNumResults: 10 });
 
       if (!response || !response.results || response.results.length === 0) {
         console.log('[LocationImage] No results from Valyu');
