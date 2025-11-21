@@ -5,7 +5,7 @@ import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
 const LocationImageSelectionSchema = z.object({
-  selectedImageIndices: z.array(z.number()).describe('Array of image indices to select (0-based), ordered by preference. Select 4-5 images.'),
+  selectedImageIndices: z.array(z.number()).describe('Array of image indices to select (0-based), ordered by preference. Select 3-5 images.'),
   reasoning: z.string().describe('Brief explanation of why these images were selected'),
 });
 
@@ -48,7 +48,7 @@ async function filterValidImageUrls(urls: string[]): Promise<string[]> {
 
 export async function POST(req: NextRequest) {
   try {
-    const { locationName, historicalPeriod, preset } = await req.json();
+    const { locationName } = await req.json();
 
     // Check API keys
     const valyuApiKey = process.env.VALYU_API_KEY;
@@ -64,82 +64,48 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ images: [], source: 'none', reason: 'Valyu API key not configured' });
     }
 
-    // Step 1: Generate optimized search query
-    let searchQuery: string;
+    // Simple search query: just location name + "image"
+    const searchQuery = `${locationName} image`;
+    console.log('[LocationImage] Search query:', searchQuery);
 
-    try {
-      const queryResult = await generateObject({
-        model: openai('gpt-5'),
-        messages: [
-          {
-            role: 'user',
-            content: `Generate a short search query (MAX 3-5 words) for finding images of a location.
-
-Location: ${locationName}
-${historicalPeriod ? `Period: ${historicalPeriod}` : ''}
-${preset ? `Topic: ${preset}` : ''}
-
-Examples:
-- "Paris Eiffel Tower"
-- "Rome Colosseum"
-- "Russia Ukraine war"
-- "Norway fjords"
-
-Return ONLY the short search query (3-5 words max).`,
-          },
-        ],
-        schema: z.object({
-          searchQuery: z.string().describe('Short search query (3-5 words)'),
-        }) as any,
-      });
-
-      searchQuery = (queryResult.object as any).searchQuery;
-      console.log('[LocationImage] Optimized query:', searchQuery);
-    } catch (error) {
-      console.error('[LocationImage] Failed to generate query:', error);
-      return NextResponse.json({ images: [], source: 'none', reason: 'Failed to generate query' });
-    }
-
-    // Step 2: Search Valyu API
+    // Search Valyu API with more results
     try {
       const valyu = new Valyu(valyuApiKey, 'https://api.valyu.ai/v1');
-      const response = await valyu.search(searchQuery, { maxNumResults: 10 });
+      const response = await valyu.search(searchQuery, { maxNumResults: 50 });
 
       if (!response || !response.results || response.results.length === 0) {
         console.log('[LocationImage] No results from Valyu');
         return NextResponse.json({ images: [], source: 'none', reason: 'No search results' });
       }
 
-      // Extract image URLs
+      // Extract TOP image from each result (not all images)
       const imageUrls: string[] = [];
       response.results.forEach((result: any) => {
-        if (result.image_url && typeof result.image_url === 'object') {
-          Object.values(result.image_url).forEach((url) => {
-            if (typeof url === 'string' && url.trim()) {
-              imageUrls.push(url);
+        // Priority: get the first/main image from each result
+        if (result.image_url) {
+          if (typeof result.image_url === 'string') {
+            imageUrls.push(result.image_url);
+          } else if (typeof result.image_url === 'object') {
+            // Get first image from object
+            const firstImage = Object.values(result.image_url)[0];
+            if (typeof firstImage === 'string' && firstImage.trim()) {
+              imageUrls.push(firstImage);
             }
-          });
+          }
         }
       });
 
-      console.log('[LocationImage] Found', imageUrls.length, 'images from Valyu');
+      console.log('[LocationImage] Found', imageUrls.length, 'top images from', response.results.length, 'results');
 
       if (imageUrls.length === 0) {
         return NextResponse.json({ images: [], source: 'none', reason: 'No image URLs in results' });
       }
 
-      // Step 3: Validate URLs
-      const validUrls = await filterValidImageUrls(imageUrls);
-      console.log('[LocationImage] Validated', validUrls.length, 'images');
+      // Take first 15 for AI selection (not all 50)
+      const urlsForSelection = imageUrls.slice(0, 15);
 
-      if (validUrls.length === 0) {
-        return NextResponse.json({ images: [], source: 'none', reason: 'No valid image URLs' });
-      }
-
-      // Step 4: AI-powered image selection
+      // AI-powered image selection (select first, then validate)
       let result;
-      let selectedUrls = validUrls.slice(0, 10);
-
       try {
         result = await generateObject({
           model: openai('gpt-5'),
@@ -149,31 +115,22 @@ Return ONLY the short search query (3-5 words max).`,
               content: [
                 {
                   type: 'text',
-                  text: `Select 3-5 high-quality, visually appealing images for: ${locationName}
+                  text: `Select 3-5 high-quality images of: ${locationName}
 
-${preset ? `Topic focus: ${preset}` : ''}
+Requirements:
+✓ ACCEPT: Clear photographs of landmarks, landscapes, buildings, cultural scenes
+✓ ACCEPT: High-resolution, well-composed images
+✓ ACCEPT: Authentic documentary or travel photography
 
-ACCEPT images showing:
-- Actual photographs of the location, landmarks, or landscapes
-- Historical sites, buildings, natural features
-- Cultural scenes, people, or events from the area
-- Clear, high-resolution photography
-- Authentic documentary or travel photography
+✗ REJECT: News logos (BBC, CNN, etc.), graphics, overlays
+✗ REJECT: Blurry, pixelated, or low-quality images
+✗ REJECT: Screenshots, memes, or text-heavy images
+✗ REJECT: Generic flags, icons, or clip art
+✗ REJECT: Watermarked or heavily branded images
 
-REJECT immediately:
-- News channel logos (BBC, CNN, etc.) or broadcast graphics
-- Blurry, pixelated, or low-quality images
-- Screenshots of websites or text overlays
-- Generic stock photos or flags without context
-- Logos, icons, or graphic design elements
-- Images with heavy watermarks or text
-- Unrelated locations or subjects
-
-Prioritize authentic, documentary-style photographs that capture the essence and beauty of the location.
-
-Select 3-5 of the BEST images. Return indices (0-based).`,
+Select the 3-5 BEST quality images that show ${locationName}. Return indices (0-based).`,
                 },
-                ...selectedUrls.map((url) => ({
+                ...urlsForSelection.map((url) => ({
                   type: 'image' as const,
                   image: url,
                 })),
@@ -183,10 +140,10 @@ Select 3-5 of the BEST images. Return indices (0-based).`,
           schema: LocationImageSelectionSchema as any,
         });
       } catch (error: any) {
-        // If image download fails, try without AI selection - just return first 3 valid images
         console.error('[LocationImage] AI selection failed:', error.message);
-        console.log('[LocationImage] Falling back to first 3 images');
 
+        // Fallback: validate and return first 3 images
+        const validUrls = await filterValidImageUrls(urlsForSelection.slice(0, 5));
         return NextResponse.json({
           images: validUrls.slice(0, 3),
           source: 'valyu',
@@ -196,22 +153,30 @@ Select 3-5 of the BEST images. Return indices (0-based).`,
 
       const selection = result.object as any;
 
-      // Accept images even if not "perfect" - just need some relevant content
       if (!selection || selection.selectedImageIndices.length === 0) {
         console.log('[LocationImage] No images selected:', selection?.reasoning);
         return NextResponse.json({ images: [], source: 'none', reason: selection?.reasoning || 'No images selected' });
       }
 
-      // Get selected images
-      const selectedImages = selection.selectedImageIndices
-        .filter((idx: number) => idx >= 0 && idx < validUrls.length)
-        .map((idx: number) => validUrls[idx]);
+      // Get selected image URLs
+      const selectedUrls = selection.selectedImageIndices
+        .filter((idx: number) => idx >= 0 && idx < urlsForSelection.length)
+        .map((idx: number) => urlsForSelection[idx]);
 
-      console.log('[LocationImage] Selected', selectedImages.length, 'images');
+      console.log('[LocationImage] AI selected', selectedUrls.length, 'images, validating...');
+
+      // Now validate only the selected images
+      const validUrls = await filterValidImageUrls(selectedUrls);
+      console.log('[LocationImage] Validated', validUrls.length, 'of', selectedUrls.length, 'selected images');
+
+      if (validUrls.length === 0) {
+        return NextResponse.json({ images: [], source: 'none', reason: 'Selected images failed validation' });
+      }
+
       console.log('[LocationImage] Reasoning:', selection.reasoning);
 
       return NextResponse.json({
-        images: selectedImages,
+        images: validUrls,
         source: 'valyu',
         reasoning: selection.reasoning,
       });

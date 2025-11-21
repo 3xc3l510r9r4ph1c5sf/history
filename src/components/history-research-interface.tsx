@@ -314,7 +314,7 @@ export function HistoryResearchInterface({ location, onClose, onTaskCreated, ini
   };
 
   // Generate hero images for location
-  const generateHeroImage = async () => {
+  const generateHeroImage = useCallback(async () => {
     if (!location || isGeneratingImage) return;
 
     setIsGeneratingImage(true);
@@ -354,10 +354,10 @@ export function HistoryResearchInterface({ location, onClose, onTaskCreated, ini
     } finally {
       setIsGeneratingImage(false);
     }
-  };
+  }, [location, isGeneratingImage, customInstructions, taskId]);
 
   // Polling function for long-running tasks
-  const pollTaskStatus = async (taskId: string) => {
+  const pollTaskStatus = useCallback(async (taskId: string) => {
     try {
       const response = await fetch(`/api/chat/poll?taskId=${taskId}`);
       if (!response.ok) {
@@ -471,7 +471,7 @@ export function HistoryResearchInterface({ location, onClose, onTaskCreated, ini
     } catch (err) {
       throw err;
     }
-  };
+  }, [displayLocation]);
 
   // Load existing research if initialTaskId is provided
   useEffect(() => {
@@ -723,7 +723,7 @@ export function HistoryResearchInterface({ location, onClose, onTaskCreated, ini
         clearInterval(pollingInterval);
       }
     };
-  }, [shouldContinuePolling, taskId]);
+  }, [shouldContinuePolling, taskId, pollTaskStatus]);
 
   // Generate hero images when research starts running (only once)
   const [imageGenerationAttempted, setImageGenerationAttempted] = useState(false);
@@ -733,7 +733,7 @@ export function HistoryResearchInterface({ location, onClose, onTaskCreated, ini
       setImageGenerationAttempted(true);
       generateHeroImage();
     }
-  }, [status, heroImages.length, isGeneratingImage, imageGenerationAttempted]);
+  }, [status, heroImages.length, isGeneratingImage, imageGenerationAttempted, generateHeroImage]);
 
   // Build timeline from messages - interleave tool-calls with their results
   // Use messagesVersion counter to force recalculation on every update
