@@ -13,6 +13,7 @@ import { Favicon } from '@/components/ui/favicon';
 import { ReasoningDialog } from '@/components/reasoning-dialog';
 import { calculateAgentMetrics } from '@/lib/metrics-calculator';
 import { useAuthStore } from '@/lib/stores/use-auth-store';
+import { useRateLimit } from '@/lib/hooks/use-rate-limit';
 
 interface Source {
   title: string;
@@ -249,6 +250,7 @@ const TimelineItem = ({ item, idx, timeline, animated = true }: { item: any; idx
 
 export function HistoryResearchInterface({ location, onClose, onTaskCreated, initialTaskId, customInstructions, initialImages }: HistoryResearchInterfaceProps) {
   const { user } = useAuthStore();
+  const { increment, refresh } = useRateLimit();
   const [status, setStatus] = useState<'idle' | 'queued' | 'running' | 'completed' | 'error'>('idle');
   const [content, setContent] = useState<string>('');
   const [sources, setSources] = useState<Source[]>([]);
@@ -512,6 +514,11 @@ export function HistoryResearchInterface({ location, onClose, onTaskCreated, ini
 
     const runResearch = async () => {
       researchInitiatedRef.current = true;
+
+      // Increment rate limit BEFORE starting research
+      await increment();
+      await refresh();
+
       setStatus('queued');
       setContent('');
       setSources([]);

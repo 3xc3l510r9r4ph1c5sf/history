@@ -224,21 +224,21 @@ export function RateLimitDialog({ open, onOpenChange, resetTime, onShowAuth }: R
                 ) : (
                   <div className="space-y-2">
                     <Button
-                      onClick={() => handleUpgrade('pay_per_use')}
+                      onClick={() => handleUpgrade('unlimited')}
                       disabled={loading}
                       className="w-full min-h-11 text-sm sm:text-base"
                     >
-                      <ChartLine className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                      <span className="truncate">Can&apos;t wait? Pay Per Use</span>
+                      <CreditCard className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      Unlimited - $20/mo with free trial
                     </Button>
                     <Button
-                      onClick={() => handleUpgrade('unlimited')}
+                      onClick={() => handleUpgrade('pay_per_use')}
                       disabled={loading}
                       variant="outline"
                       className="w-full min-h-11 text-sm sm:text-base"
                     >
-                      <CreditCard className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                      Unlimited - $50/month
+                      <ChartLine className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      <span className="truncate">Pay Per Use</span>
                     </Button>
                   </div>
                 )}
@@ -297,27 +297,29 @@ export function RateLimitDialog({ open, onOpenChange, resetTime, onShowAuth }: R
                 </div>
               </div>
 
-              {/* Simple code example */}
-              <div className="bg-muted rounded-lg p-3 sm:p-4 text-left">
-                <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-                  <span className="text-[10px] sm:text-xs font-medium text-muted-foreground">API Example</span>
-                  <Button
-                    onClick={() => handleCopy(codeSnippet)}
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 sm:h-8 px-2 min-h-11"
-                  >
-                    {copied ? (
-                      <Check className="h-3 w-3 text-green-600" />
-                    ) : (
-                      <Copy className="h-3 w-3" />
-                    )}
-                  </Button>
+              {/* Simple code example - Only show for anonymous users */}
+              {!user && (
+                <div className="bg-muted rounded-lg p-3 sm:p-4 text-left">
+                  <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+                    <span className="text-[10px] sm:text-xs font-medium text-muted-foreground">API Example</span>
+                    <Button
+                      onClick={() => handleCopy(codeSnippet)}
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 sm:h-8 px-2 min-h-11"
+                    >
+                      {copied ? (
+                        <Check className="h-3 w-3 text-green-600" />
+                      ) : (
+                        <Copy className="h-3 w-3" />
+                      )}
+                    </Button>
+                  </div>
+                  <pre className="text-[10px] sm:text-xs font-mono text-foreground overflow-x-auto">
+                    {codeSnippet}
+                  </pre>
                 </div>
-                <pre className="text-[10px] sm:text-xs font-mono text-foreground overflow-x-auto">
-                  {codeSnippet}
-                </pre>
-              </div>
+              )}
             </div>
           </DialogContent>
         </Dialog>

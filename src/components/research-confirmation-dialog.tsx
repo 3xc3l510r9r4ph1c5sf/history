@@ -5,11 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { X, ChevronDown, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuthStore } from '@/lib/stores/use-auth-store';
 
 interface ResearchConfirmationDialogProps {
   location: { name: string; lat: number; lng: number } | null;
   onConfirm: (customInstructions?: string) => void;
   onCancel: () => void;
+  onSignUp?: () => void;
 }
 
 const PRESETS = [
@@ -59,7 +61,9 @@ export function ResearchConfirmationDialog({
   location,
   onConfirm,
   onCancel,
+  onSignUp,
 }: ResearchConfirmationDialogProps) {
+  const { user } = useAuthStore();
   const [selectedPreset, setSelectedPreset] = useState<string>('general');
   const [customInstructions, setCustomInstructions] = useState('');
   const [showCustom, setShowCustom] = useState(false);
@@ -174,23 +178,50 @@ export function ResearchConfirmationDialog({
           </div>
 
           {/* Footer */}
-          <div className="p-3 sm:p-4 border-t flex gap-2 justify-between items-center">
-            <Button
-              variant="ghost"
-              onClick={onCancel}
-              size="sm"
-              className="min-h-11 text-xs sm:text-sm"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleConfirm}
-              size="default"
-              className="px-4 sm:px-6 font-semibold min-h-11 text-xs sm:text-sm"
-            >
-              <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
-              <span className="truncate">Start Research</span>
-            </Button>
+          <div className="p-3 sm:p-4 border-t">
+            {!user ? (
+              // Anonymous user - show signup incentive
+              <div className="space-y-2">
+                <Button
+                  onClick={handleConfirm}
+                  size="default"
+                  variant="outline"
+                  className="w-full font-semibold min-h-11 text-xs sm:text-sm"
+                >
+                  <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+                  <span className="truncate">Continue Without Signup</span>
+                </Button>
+                {onSignUp && (
+                  <Button
+                    onClick={onSignUp}
+                    size="default"
+                    className="w-full font-semibold min-h-11 text-xs sm:text-sm"
+                  >
+                    <span className="truncate">Sign Up to Save Research</span>
+                  </Button>
+                )}
+              </div>
+            ) : (
+              // Signed in user - show normal buttons
+              <div className="flex gap-2 justify-between items-center">
+                <Button
+                  variant="ghost"
+                  onClick={onCancel}
+                  size="sm"
+                  className="min-h-11 text-xs sm:text-sm"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleConfirm}
+                  size="default"
+                  className="px-4 sm:px-6 font-semibold min-h-11 text-xs sm:text-sm"
+                >
+                  <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+                  <span className="truncate">Start Research</span>
+                </Button>
+              </div>
+            )}
           </div>
         </motion.div>
       </div>

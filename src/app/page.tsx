@@ -23,7 +23,7 @@ import { SubscriptionModal } from '@/components/user/subscription-modal';
 function HomeContent() {
   const { user, loading } = useAuthStore();
   const queryClient = useQueryClient();
-  const { allowed, remaining, resetTime, increment } = useRateLimit();
+  const { allowed, remaining, resetTime, increment, refresh } = useRateLimit();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showRateLimitDialog, setShowRateLimitDialog] = useState(false);
@@ -83,7 +83,36 @@ function HomeContent() {
     }
   }, [notification]);
 
-  const handleLocationClick = useCallback((location: { name: string; lat: number; lng: number }, taskId?: string) => {
+  // Helper to check anonymous rate limit from cookie directly
+  const checkAnonymousRateLimit = () => {
+    const COOKIE_NAME = '$dekcuf_teg';
+    const ANONYMOUS_LIMIT = 1;
+    const today = new Date().toISOString().split('T')[0];
+
+    const getCookie = (name: string): string | null => {
+      if (typeof window === 'undefined') return null;
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      return parts.length === 2 ? parts.pop()?.split(';').shift() || null : null;
+    };
+
+    const decodeCookieData = (encoded: string | null): { count: number; date: string } => {
+      if (!encoded) return { count: 0, date: '' };
+      try {
+        const decoded = atob(encoded);
+        const [count, date] = decoded.split('|');
+        return { count: parseInt(count) || 0, date: date || '' };
+      } catch {
+        return { count: 0, date: '' };
+      }
+    };
+
+    const storedData = decodeCookieData(getCookie(COOKIE_NAME));
+    const used = storedData.date === today ? storedData.count : 0;
+    return used < ANONYMOUS_LIMIT;
+  };
+
+  const handleLocationClick = useCallback(async (location: { name: string; lat: number; lng: number }, taskId?: string) => {
     track('location_clicked', { location: location.name });
 
     // If this is loading existing research (has taskId), skip rate limit check
@@ -95,8 +124,11 @@ function HomeContent() {
       return;
     }
 
+    // For anonymous users, check cookie directly for real-time rate limit
+    const isRateLimitOk = !user ? checkAnonymousRateLimit() : allowed;
+
     // Check rate limit for ALL users (anonymous and signed-in)
-    if (!allowed) {
+    if (!isRateLimitOk) {
       // For anonymous users, show signup prompt with rate limit context
       if (!user) {
         setShowSignupPrompt(true);
@@ -114,12 +146,23 @@ function HomeContent() {
 
   const handleConfirmResearch = useCallback((instructions?: string) => {
     if (confirmLocation) {
+      // Double-check rate limit before starting research
+      if (!allowed) {
+        setShowConfirmDialog(false);
+        if (!user) {
+          setShowSignupPrompt(true);
+        } else {
+          handleRateLimitError(resetTime?.toISOString() || new Date().toISOString());
+        }
+        return;
+      }
+
       setCustomInstructions(instructions);
       setSelectedLocation(confirmLocation);
       setShowConfirmDialog(false);
       setConfirmLocation(null);
     }
-  }, [confirmLocation]);
+  }, [confirmLocation, allowed, user, resetTime, handleRateLimitError]);
 
   const handleCancelResearch = useCallback(() => {
     setShowConfirmDialog(false);
@@ -330,6 +373,10 @@ function HomeContent() {
           location={confirmLocation}
           onConfirm={handleConfirmResearch}
           onCancel={handleCancelResearch}
+          onSignUp={() => {
+            setShowConfirmDialog(false);
+            setShowAuthModal(true);
+          }}
         />
       )}
 
@@ -358,8 +405,9 @@ function HomeContent() {
         open={showAuthModal}
         onClose={() => setShowAuthModal(false)}
         onSignUpSuccess={(message) => {
+          // Don't close modal - let user see success message and click "Got it"
+          // Just show notification as well
           setNotification({ type: 'success', message });
-          setShowAuthModal(false);
         }}
       />
 
