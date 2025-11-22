@@ -567,11 +567,33 @@ export async function updateResearchTaskByDeepResearchId(
   return { error };
 }
 
+// Helper function to create URL-friendly slug from location name
+function createLocationSlug(locationName: string): string {
+  return locationName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with hyphens
+    .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
+    .substring(0, 50); // Limit length
+}
+
 // Share a research task publicly
 export async function shareResearchTask(taskId: string, userId: string) {
   if (isDevelopmentMode()) {
     const db = getLocalDb();
-    const shareToken = Math.random().toString(36).substring(2, 14);
+
+    // Get the task to access location_name
+    const [task] = await db.select()
+      .from(schema.researchTasks)
+      .where(eq(schema.researchTasks.id, taskId));
+
+    if (!task) {
+      return { data: null, error: new Error('Task not found') };
+    }
+
+    const locationSlug = createLocationSlug(task.locationName);
+    const randomId = Math.random().toString(36).substring(2, 10); // 8 chars
+    const shareToken = `${locationSlug}-${randomId}`;
+
     await db.update(schema.researchTasks)
       .set({
         isPublic: true,
@@ -584,9 +606,22 @@ export async function shareResearchTask(taskId: string, userId: string) {
 
   const supabase = await createSupabaseClient();
 
-  // First, generate a share token using the database function
-  const { data: tokenData } = await supabase.rpc('generate_share_token');
-  const shareToken = tokenData;
+  // Get the task to access location_name
+  const { data: task } = await supabase
+    .from("research_tasks")
+    .select('location_name')
+    .eq("id", taskId)
+    .eq("user_id", userId)
+    .single();
+
+  if (!task) {
+    return { data: null, error: new Error('Task not found or unauthorized') };
+  }
+
+  // Create slug from location name + random ID
+  const locationSlug = createLocationSlug(task.location_name);
+  const randomId = Math.random().toString(36).substring(2, 10); // 8 chars
+  const shareToken = `${locationSlug}-${randomId}`;
 
   // Update the task to be public with the share token
   const { data, error } = await supabase
