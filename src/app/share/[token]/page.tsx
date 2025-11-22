@@ -1,4 +1,4 @@
-import { Loader } from 'lucide-react';
+import Link from 'next/link';
 import * as db from '@/lib/db';
 import { fetchCompletedResearch } from '@/lib/fetch-research';
 import { SharePageClient } from '@/components/share-page-client';
@@ -15,12 +15,12 @@ async function SharePageContent({ token }: { token: string }) {
           <p className="text-muted-foreground mb-4">
             This research is no longer available or was not shared.
           </p>
-          <a
+          <Link
             href="/"
             className="inline-block px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
           >
             Go to Homepage
-          </a>
+          </Link>
         </div>
       </div>
     );

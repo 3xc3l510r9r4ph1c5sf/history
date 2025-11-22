@@ -20,10 +20,10 @@ export function SignupPrompt({ open, onClose, onSignUp, rateLimitContext }: Sign
   // Determine the context
   const isAnonymous = !user;
   const isFreeUser = user && subscription.tier === 'free';
-  const isSubscriptionUser = subscription.tier === 'subscription';
+  const isSubscriptionUser = subscription.tier === 'unlimited';
 
   // Use rateLimitContext if provided, otherwise infer from user state
-  const context = rateLimitContext || (isAnonymous ? 'anonymous' : isFreeUser ? 'free' : isSubscriptionUser ? 'subscription' : null);
+  const context = rateLimitContext || (isAnonymous ? 'anonymous' : isFreeUser ? 'free' : isSubscriptionUser ? 'unlimited' : null);
   return (
     <AnimatePresence>
       {open && (

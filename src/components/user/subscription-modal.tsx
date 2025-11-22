@@ -92,7 +92,7 @@ export function SubscriptionModal({ open, onClose }: SubscriptionModalProps) {
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="p-3 bg-blue-600 dark:bg-blue-700 rounded-lg">
-                    {subscription.tier === 'subscription' ? (
+                    {subscription.tier === 'unlimited' ? (
                       <Crown className="h-6 w-6 text-white" />
                     ) : (
                       <Zap className="h-6 w-6 text-white" />
@@ -100,7 +100,7 @@ export function SubscriptionModal({ open, onClose }: SubscriptionModalProps) {
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                      {subscription.tier === 'subscription' ? 'Subscription' : 'Pay-As-You-Go'}
+                      {subscription.tier === 'unlimited' ? 'Subscription' : 'Pay-As-You-Go'}
                     </h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       Status: <span className="font-semibold text-green-600 dark:text-green-400">Active</span>
@@ -110,7 +110,7 @@ export function SubscriptionModal({ open, onClose }: SubscriptionModalProps) {
               </div>
 
               <div className="space-y-2">
-                {subscription.tier === 'subscription' ? (
+                {subscription.tier === 'unlimited' ? (
                   <>
                     <div className="flex items-center gap-2 text-sm">
                       <Check className="h-4 w-4 text-blue-600 dark:text-blue-400" />
