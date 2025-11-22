@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/lib/stores/use-auth-store';
 import { createClient } from '@/utils/supabase/client-wrapper';
 
-export type SubscriptionTier = 'anonymous' | 'free' | 'pay_per_use' | 'subscription';
+export type SubscriptionTier = 'anonymous' | 'free' | 'pay_per_use' | 'unlimited';
 
 export interface UserSubscription {
   tier: SubscriptionTier;
@@ -46,7 +46,7 @@ export function useSubscription(): UserSubscription {
   // Return development mode permissions early (after all hooks)
   if (isDevelopment) {
     return {
-      tier: 'subscription',
+      tier: 'unlimited',
       status: 'active',
       isAnonymous: false,
       isFree: false,
@@ -75,7 +75,7 @@ export function useSubscription(): UserSubscription {
       ? (data.subscription_tier as SubscriptionTier)
       : 'free';
 
-  const isPaid = tier === 'pay_per_use' || tier === 'subscription';
+  const isPaid = tier === 'pay_per_use' || tier === 'unlimited';
 
   return {
     tier,
