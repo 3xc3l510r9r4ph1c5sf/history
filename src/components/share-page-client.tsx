@@ -14,6 +14,7 @@ interface SharePageClientProps {
     deepresearch_id?: string;
     locationImages?: string[];
     location_images?: string[];
+    status?: string;
   };
 }
 
@@ -29,6 +30,7 @@ export function SharePageClient({ task }: SharePageClientProps) {
         onClose={() => window.location.href = '/'}
         initialTaskId={task.deepresearchId || task.deepresearch_id}
         initialImages={task.locationImages || task.location_images || []}
+        initialStatus={task.status}
       />
     </div>
   );

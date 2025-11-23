@@ -484,6 +484,9 @@ export function HistoryResearchInterface({ location, onClose, onTaskCreated, ini
         }
 
         // Set status to completed LAST, after all content is ready
+        console.log('[POLL STATUS] Setting status to completed');
+        console.log('[POLL STATUS] Content length:', extractedContent.length);
+        console.log('[POLL STATUS] Messages count:', statusData.messages?.length || 0);
         setStatus('completed');
         return { completed: true };
       } else if (statusData.status === 'failed') {
@@ -676,15 +679,12 @@ export function HistoryResearchInterface({ location, onClose, onTaskCreated, ini
                     setStatus('error');
                     break;
                   case 'done':
-                    // Only set status to completed if we have content
-                    // This prevents the UI from showing "completed" without the actual report
-                    setContent(prevContent => {
-                      if (prevContent) {
-                        setStatus('completed');
-                      } else {
-                      }
-                      return prevContent;
-                    });
+                    // SSE stream is done - poll to get final status and content
+                    // Don't set status yet - let polling handle it to ensure we have content
+                    console.log('[SSE] Received DONE event - triggering polling');
+                    console.log('[SSE] Current status:', status);
+                    console.log('[SSE] Current content length:', content?.length || 0);
+                    setShouldContinuePolling(true);
                     break;
                 }
               } catch (e) {
@@ -712,23 +712,29 @@ export function HistoryResearchInterface({ location, onClose, onTaskCreated, ini
 
   // Client-side polling effect for long-running tasks
   useEffect(() => {
+    console.log('[POLLING] Effect triggered - shouldContinuePolling:', shouldContinuePolling, 'taskId:', taskId);
     if (!shouldContinuePolling || !taskId) return;
 
     let pollingInterval: NodeJS.Timeout;
 
     const startPolling = async () => {
+      console.log('[POLLING] Starting polling for taskId:', taskId);
 
       const poll = async () => {
         try {
+          console.log('[POLLING] Polling...');
           const result = await pollTaskStatus(taskId);
+          console.log('[POLLING] Result:', { completed: result.completed });
 
           if (result.completed) {
+            console.log('[POLLING] Task completed! Stopping polling.');
             setShouldContinuePolling(false);
             if (pollingInterval) {
               clearInterval(pollingInterval);
             }
           }
         } catch (err) {
+          console.error('[POLLING] Error:', err);
           setError(err instanceof Error ? err.message : 'Polling error');
           setStatus('error');
           setShouldContinuePolling(false);
@@ -746,6 +752,7 @@ export function HistoryResearchInterface({ location, onClose, onTaskCreated, ini
     startPolling();
 
     return () => {
+      console.log('[POLLING] Cleanup - clearing interval');
       if (pollingInterval) {
         clearInterval(pollingInterval);
       }
