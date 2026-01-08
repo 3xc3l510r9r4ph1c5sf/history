@@ -198,16 +198,16 @@ function HomeContent() {
       background: 'linear-gradient(180deg, rgb(0, 15, 0) 0%, rgb(0, 0, 0) 50%, rgb(0, 15, 0) 100%)'
     }}>
       {/* Decorative Terminal Corners */}
-      <div className="fixed top-4 left-4 z-10 pointer-events-none terminal-glow" style={{ fontFamily: "'Courier New', monospace", fontSize: '24px', color: 'rgb(var(--terminal-green))' }}>
+      <div className="fixed top-4 left-4 z-[100] pointer-events-none terminal-glow" style={{ fontFamily: "'Courier New', monospace", fontSize: '24px', color: '#00ff41' }}>
         ┌────
       </div>
-      <div className="fixed top-4 right-4 z-10 pointer-events-none terminal-glow" style={{ fontFamily: "'Courier New', monospace", fontSize: '24px', color: 'rgb(var(--terminal-green))' }}>
+      <div className="fixed top-4 right-4 z-[100] pointer-events-none terminal-glow" style={{ fontFamily: "'Courier New', monospace", fontSize: '24px', color: '#00ff41' }}>
         ────┐
       </div>
-      <div className="fixed bottom-4 left-4 z-10 pointer-events-none terminal-glow" style={{ fontFamily: "'Courier New', monospace", fontSize: '24px', color: 'rgb(var(--terminal-green))' }}>
+      <div className="fixed bottom-4 left-4 z-[100] pointer-events-none terminal-glow" style={{ fontFamily: "'Courier New', monospace", fontSize: '24px', color: '#00ff41' }}>
         └────
       </div>
-      <div className="fixed bottom-4 right-4 z-10 pointer-events-none terminal-glow" style={{ fontFamily: "'Courier New', monospace", fontSize: '24px', color: 'rgb(var(--terminal-green))' }}>
+      <div className="fixed bottom-4 right-4 z-[100] pointer-events-none terminal-glow" style={{ fontFamily: "'Courier New', monospace", fontSize: '24px', color: '#00ff41' }}>
         ────┘
       </div>
 
@@ -217,7 +217,7 @@ function HomeContent() {
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header - Clean Layout */}
-        <header className="absolute top-0 left-0 right-0 z-20 pointer-events-none">
+        <header className="absolute top-0 left-0 right-0 z-50 pointer-events-none">
           {/* Title Section - Centered */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -233,23 +233,24 @@ function HomeContent() {
                 className="relative inline-block group cursor-pointer"
               >
                 <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-wider mb-3 sm:mb-4 relative inline-block transition-transform duration-300 ease-out group-hover:scale-105 terminal-glow uppercase" style={{ letterSpacing: '0.15em' }}>
-                  <span className="text-primary" style={{ fontFamily: "'Courier New', monospace", fontWeight: 900 }}>
+                  <span style={{ fontFamily: "'Courier New', monospace", fontWeight: 900, color: '#00ff41' }}>
                     HISTORY EXPLORER
                   </span>
                   <motion.div
-                    className="absolute -bottom-1 left-0 right-0 h-[2px] bg-primary"
+                    className="absolute -bottom-1 left-0 right-0 h-[2px]"
                     initial={{ scaleX: 0 }}
                     animate={{ scaleX: 1 }}
                     transition={{ duration: 1, delay: 0.6 }}
                     style={{
-                      boxShadow: '0 0 10px rgb(var(--terminal-green)), 0 0 20px rgba(var(--terminal-green), 0.5)'
+                      backgroundColor: '#00ff41',
+                      boxShadow: '0 0 10px #00ff41, 0 0 20px rgba(0, 255, 65, 0.5)'
                     }}
                   />
                 </h1>
 
                 {/* By Valyu Logo - Hidden on mobile, slides out on desktop */}
                 <div className="hidden sm:flex absolute left-full top-1/2 -translate-y-1/2 items-center gap-2.5 ml-4 whitespace-nowrap opacity-0 -translate-x-5 transition-all duration-300 ease-out group-hover:opacity-100 group-hover:translate-x-0 pointer-events-none">
-                  <span className="text-base md:text-lg text-primary terminal-glow font-bold">BY</span>
+                  <span className="text-base md:text-lg terminal-glow font-bold" style={{ color: '#00ff41' }}>BY</span>
                   <Image
                     src="/valyu.svg"
                     alt="Valyu"
@@ -268,8 +269,8 @@ function HomeContent() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.6, delay: 0.4 }}
-                className="text-xs sm:text-sm text-primary font-bold tracking-widest terminal-glow px-4 uppercase"
-                style={{ fontFamily: "'Courier New', monospace" }}
+                className="text-xs sm:text-sm font-bold tracking-widest terminal-glow px-4 uppercase"
+                style={{ fontFamily: "'Courier New', monospace", color: '#00ff41' }}
               >
                 &gt; Discover the stories behind every place on Earth_
               </motion.p>
@@ -287,10 +288,13 @@ function HomeContent() {
               whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleFeelingLucky}
-              className="group relative px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 text-xs sm:text-sm font-bold bg-black/80 backdrop-blur-xl text-primary border-2 border-primary transition-all hover:bg-primary hover:text-black flex items-center gap-1.5 sm:gap-2 md:gap-2.5 min-h-11 terminal-glow uppercase tracking-wider"
+              className="group relative px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 text-xs sm:text-sm font-bold backdrop-blur-xl transition-all flex items-center gap-1.5 sm:gap-2 md:gap-2.5 min-h-11 terminal-glow uppercase tracking-wider"
               style={{
                 fontFamily: "'Courier New', monospace",
-                boxShadow: '0 0 20px rgba(var(--terminal-green), 0.5), inset 0 0 10px rgba(var(--terminal-green), 0.1)'
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                color: '#00ff41',
+                border: '2px solid #00ff41',
+                boxShadow: '0 0 20px rgba(0, 255, 65, 0.5), inset 0 0 10px rgba(0, 255, 65, 0.1)'
               }}
             >
               <Shuffle className="h-3.5 w-3.5 sm:h-4 sm:w-4 group-hover:rotate-180 transition-transform duration-500" />
@@ -378,23 +382,25 @@ function HomeContent() {
             initial={{ opacity: 0, y: -50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -50 }}
-            className="fixed top-4 right-4 z-50"
+            className="fixed top-4 right-4 z-[200]"
           >
             <div
-              className="flex items-center gap-3 px-4 py-3 bg-black/90 border-2 border-primary shadow-lg terminal-glow backdrop-blur-xl"
+              className="flex items-center gap-3 px-4 py-3 terminal-glow backdrop-blur-xl"
               style={{
                 fontFamily: "'Courier New', monospace",
-                boxShadow: '0 0 30px rgba(var(--terminal-green), 0.6), inset 0 0 20px rgba(var(--terminal-green), 0.1)'
+                backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                border: '2px solid #00ff41',
+                boxShadow: '0 0 30px rgba(0, 255, 65, 0.6), inset 0 0 20px rgba(0, 255, 65, 0.1)'
               }}
             >
               {notification.type === 'success' ? (
-                <CheckCircle className="h-5 w-5 text-primary" />
+                <CheckCircle className="h-5 w-5" style={{ color: '#00ff41' }} />
               ) : notification.type === 'info' ? (
-                <Sparkles className="h-5 w-5 text-primary" />
+                <Sparkles className="h-5 w-5" style={{ color: '#00ff41' }} />
               ) : (
-                <AlertCircle className="h-5 w-5 text-destructive" />
+                <AlertCircle className="h-5 w-5" style={{ color: '#ff3232' }} />
               )}
-              <p className="text-sm font-bold text-primary uppercase tracking-wide">{notification.message}</p>
+              <p className="text-sm font-bold uppercase tracking-wide" style={{ color: '#00ff41' }}>{notification.message}</p>
             </div>
           </motion.div>
         )}
