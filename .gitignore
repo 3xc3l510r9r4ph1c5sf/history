@@ -49,3 +49,4 @@ docs/
 
 # local development database
 .local-data/
+.env
